@@ -49,11 +49,12 @@ class _WifiListState extends State<WifiList> {
     await confirmDialog();
 
     try {
-      var response = await WiFiForIoTPlugin.connect(network.ssid,
-          password: _passwordCtrl.text,
-          joinOnce: true,
-          security: STA_DEFAULT_SECURITY);
-
+      print(_passwordCtrl.text);
+      var response = await WiFiForIoTPlugin.connect(
+          network.ssid
+      );
+      print(network.capabilities);
+      print(_passwordCtrl.text);
       if (response == true) {
         Future.delayed(const Duration(seconds: 1));
         String url = 'http://meteor-inovasi-digital.id/login?';
@@ -76,7 +77,7 @@ class _WifiListState extends State<WifiList> {
 
       _passwordCtrl.text = '';
     } catch (e) {
-      // Error
+      print(e);
     }
   }
 
@@ -89,7 +90,6 @@ class _WifiListState extends State<WifiList> {
     } on PlatformException {
       networks = new List<WifiNetwork>();
     }
-
     if (networks != null && networks.length > 0) {
       networks.forEach((network) {
         PopupCommand oCmdConnect = new PopupCommand("Connect", network.ssid);

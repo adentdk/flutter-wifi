@@ -1,5 +1,6 @@
-import 'package:adawifi/detail.dart';
 import 'package:flutter/material.dart';
+import 'package:adawifi/screens/sign-in/index.dart';
+import 'package:adawifi/detail.dart';
 import 'package:adawifi/home.dart';
 
 void main() => runApp(MyApp());
@@ -15,6 +16,7 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
+        '/sign-in' : (context) => SignIn(),
         '/': (context) => MyHomePage(
               title: 'Flutter Adawifi',
             ),
