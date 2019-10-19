@@ -1,7 +1,9 @@
+import 'package:device_id/device_id.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wifi_iot/wifi_iot.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 const NetworkSecurity STA_DEFAULT_SECURITY = NetworkSecurity.WPA;
 
@@ -46,33 +48,32 @@ class _WifiListState extends State<WifiList> {
   }
 
   handleConnect(network) async {
-    await confirmDialog();
-
+    // await confirmDialog();
+    var bssid = network.bssid;
+    var deviceId = await DeviceId.getID;
     try {
-      print(_passwordCtrl.text);
       var response = await WiFiForIoTPlugin.connect(
           network.ssid
       );
-      print(network.capabilities);
-      print(_passwordCtrl.text);
       if (response == true) {
-        Future.delayed(const Duration(seconds: 1));
-        String url = 'http://meteor-inovasi-digital.id/login?';
-        var response = await http.post(url, body: {
-          'username': 'imron',
-          'password': 'imron',
-          'dst': 'http://meteor-inovasi-digital.id/login?'
-        });
-
-        if (response.statusCode == 200) {
+        print("connect");
+        String url = DotEnv().env['BASE_URL'] + "login?deviceId=$deviceId&bssid=$bssid";
+        print("===================");
+        var response2 = await http.get(url);
+        print(response2.statusCode);
+        if (response2.statusCode == 200) {
           Scaffold
             .of(context)
             .showSnackBar(SnackBar(content: Text('Connected')));
+        } else {
+          throw("cannot access internet");
         }
+
       } else {
         Scaffold
             .of(context)
             .showSnackBar(SnackBar(content: Text('Connection failed')));
+        throw("cannot connect to this network");
       }
 
       _passwordCtrl.text = '';
@@ -81,10 +82,15 @@ class _WifiListState extends State<WifiList> {
     }
   }
 
+  handleDisconnect(network) async {
+    WiFiForIoTPlugin.disconnect();
+  }
+
   Future<Null> getWifiList() async {
     List<WifiNetwork> networks;
     List<ListTile> wifiList = new List();
-
+    String ssid = await WiFiForIoTPlugin.getSSID();
+    bool connected;
     try {
       networks = await WiFiForIoTPlugin.loadWifiList();
     } on PlatformException {
@@ -95,7 +101,6 @@ class _WifiListState extends State<WifiList> {
         PopupCommand oCmdConnect = new PopupCommand("Connect", network.ssid);
         PopupCommand oCmdRemove = new PopupCommand("Remove", network.ssid);
         List<PopupMenuItem<PopupCommand>> popupMenuItems = new List();
-
         popupMenuItems.add(
           new PopupMenuItem<PopupCommand>(
             value: oCmdConnect,
@@ -109,24 +114,23 @@ class _WifiListState extends State<WifiList> {
             child: const Text('Disconnect'),
           ),
         );
-
+        connected = ssid == network.ssid;
         wifiList.add(ListTile(
           title: Text(network.ssid),
-          trailing: PopupMenuButton<PopupCommand>(
-            padding: EdgeInsets.zero,
-            onSelected: (PopupCommand pocommand) {
-              switch (pocommand.command) {
-                case "Connect":
-                  handleConnect(network);
-                  break;
-                case "Remove":
-                  WiFiForIoTPlugin.removeWifiNetwork(pocommand.argument);
-                  break;
-                default:
-                  break;
+          trailing: FlatButton(
+            onPressed: () async {
+              if (connected) {
+                setState(() {
+                  connected = false;
+                });
+                return handleDisconnect(network);
               }
+              setState(() {
+                  connected = true;
+              });
+              return handleConnect(network);
             },
-            itemBuilder: (BuildContext context) => popupMenuItems,
+            child: connected ? Text("disconnect") : Text("connect", style: TextStyle(fontSize: 12, color: Colors.red)),
           ),
         ));
       });

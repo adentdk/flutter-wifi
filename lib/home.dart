@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:connectivity/connectivity.dart';
 import 'package:wifi_iot/wifi_iot.dart';
 import 'package:adawifi/list.dart';
 
@@ -16,6 +17,48 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  Connectivity _connectivity = new Connectivity();
+  bool isWifiEnable = false;
+
+  void initState() {
+    super.initState();
+    isWifiEnabled();
+    _connectivity.onConnectivityChanged.listen((ConnectivityResult result) {
+      print(result);
+      if (result == ConnectivityResult.wifi) {
+        setState(() {
+          isWifiEnable = true;
+        });
+      } else {
+        setState(() {
+          isWifiEnable = false;
+        });
+      }
+    });
+  }
+
+  void dispose() {
+    super.dispose();
+  }
+
+  void handleChangeWifi(bool value) async {
+    await WiFiForIoTPlugin.setEnabled(value);
+    setState(() {
+      isWifiEnable = value;
+    });
+  }
+
+  Future<bool> isWifiEnabled() async {
+    bool isEnable;
+    isEnable = await WiFiForIoTPlugin.isEnabled();
+    if (isEnable) {
+      setState(() {
+        isWifiEnable = true;
+      });
+    }
+    return isEnable;
+  }
+
   Future<bool> checkLocationPermission() async {
     PermissionStatus permission = await PermissionHandler()
         .checkPermissionStatus(PermissionGroup.location);
@@ -32,26 +75,26 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<bool> isConnected() async {
-    bool isConnectedAndGranted;
+    bool isEnabledAndGranted;
 
     try {
-      bool isConnected = await WiFiForIoTPlugin.isConnected();
+      bool isEnabled = await WiFiForIoTPlugin.isEnabled();
       bool isGranted = await checkLocationPermission();
       if (isGranted == false) {
         await requestLocationPermission();
         isGranted = await checkLocationPermission();
       }
 
-      if (isConnected == true && isGranted) {
-        isConnectedAndGranted = true;
+      if (isEnabled == true && isGranted) {
+        isEnabledAndGranted = true;
       }
     } on PlatformException {
-      isConnectedAndGranted = false;
+      isEnabledAndGranted = false;
     }
 
     if (!mounted) return true;
 
-    return isConnectedAndGranted;
+    return isEnabledAndGranted;
   }
 
   handleNavigate() {
@@ -64,6 +107,14 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: <Widget>[
+          Switch(
+            value: isWifiEnable,
+            onChanged: (value) {
+             handleChangeWifi(!isWifiEnable);
+            },
+            activeTrackColor: Colors.lightGreenAccent, 
+            activeColor: Colors.green,
+          ),
           IconButton(
             icon: const Icon(Icons.more_vert),
             tooltip: 'Show Snackbar',
@@ -71,7 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      body: Container(
+      body: isWifiEnable ? Container(
         child: FutureBuilder(
           future: isConnected(),
           builder: (context, snapshot) {
@@ -86,7 +137,12 @@ class _MyHomePageState extends State<MyHomePage> {
             );
           },
         ),
-      ),
+      ) : Center(
+        child: GestureDetector(
+          onTap: () => handleChangeWifi(true),
+          child: Text("Turn on Wifi")
+          )
+        ),
     );
   }
 }

@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:adawifi/screens/sign-in/index.dart';
 import 'package:adawifi/detail.dart';
 import 'package:adawifi/home.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() => runApp(MyApp());
+Future main() async {
+  await DotEnv().load('.env');
+  return runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -16,11 +20,10 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/sign-in',
       routes: {
-        '/sign-in' : (context) => SignIn(),
-
         '/': (context) => MyHomePage(
               title: 'Flutter Adawifi',
             ),
+        '/sign-in' : (context) => SignIn(),
         '/detail': (context) => Detail()
       },
     );
