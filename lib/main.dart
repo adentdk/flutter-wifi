@@ -14,9 +14,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      initialRoute: '/',
+      initialRoute: '/sign-in',
       routes: {
         '/sign-in' : (context) => SignIn(),
+
         '/': (context) => MyHomePage(
               title: 'Flutter Adawifi',
             ),
