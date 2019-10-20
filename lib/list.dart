@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:wifi_iot/wifi_iot.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:async/async.dart';
+import 'dart:convert';
 
 const NetworkSecurity STA_DEFAULT_SECURITY = NetworkSecurity.WPA;
 
@@ -15,6 +17,8 @@ class WifiList extends StatefulWidget {
 class _WifiListState extends State<WifiList> {
   List<ListTile> _wifiList = new List();
   TextEditingController _passwordCtrl = TextEditingController();
+  String username;
+  String password;
 
   @override
   initState() {
@@ -46,46 +50,6 @@ class _WifiListState extends State<WifiList> {
           );
         });
   }
-
-  handleConnect(network) async {
-    // await confirmDialog();
-    var bssid = network.bssid;
-    var deviceId = await DeviceId.getID;
-    try {
-      var response = await WiFiForIoTPlugin.connect(
-          network.ssid
-      );
-      if (response == true) {
-        print("connect");
-        String url = DotEnv().env['BASE_URL'] + "login?deviceId=$deviceId&bssid=$bssid";
-        print("===================");
-        var response2 = await http.get(url);
-        print(response2.statusCode);
-        if (response2.statusCode == 200) {
-          Scaffold
-            .of(context)
-            .showSnackBar(SnackBar(content: Text('Connected')));
-        } else {
-          throw("cannot access internet");
-        }
-
-      } else {
-        Scaffold
-            .of(context)
-            .showSnackBar(SnackBar(content: Text('Connection failed')));
-        throw("cannot connect to this network");
-      }
-
-      _passwordCtrl.text = '';
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  handleDisconnect(network) async {
-    WiFiForIoTPlugin.disconnect();
-  }
-
   Future<Null> getWifiList() async {
     List<WifiNetwork> networks;
     List<ListTile> wifiList = new List();
@@ -139,6 +103,70 @@ class _WifiListState extends State<WifiList> {
     setState(() {
       _wifiList = wifiList;
     });
+  }
+
+  handleConnect(network) async {
+    // await confirmDialog();
+    var bssid = network.bssid;
+    try {
+      var deviceId = await DeviceId.getID;
+      var response = await WiFiForIoTPlugin.connect(
+          network.ssid,
+          joinOnce: true
+      );
+      print("=================");
+      print(response);
+      print("=================");
+      if (response == true) {
+        print("connect");
+        var urlGetUsername = DotEnv().env['BASE_URL'] + "check-auth?deviceId=$deviceId";
+        var account = await http.get(urlGetUsername);
+        print(account.body);
+        print("===================");
+
+        Future.delayed(const Duration(seconds: 3), () async {
+          try {
+            print("delayed");
+            String url = "http://192.168.88.1/login?";
+            String username = json.decode(account.body)['email'];
+            String password = json.decode(account.body)['password'];
+            var body = Uri.encodeQueryComponent(json.encode({
+              'username': '$username',
+              'password': '$password'
+            }));
+            print(body);
+            var response2 = await http.post(url, body: {
+              'username': '$username',
+              'password': '$password'
+            });
+            print(response2.statusCode);
+            if (response2.statusCode == 200) {
+              Scaffold
+                .of(context)
+                .showSnackBar(SnackBar(content: Text('Connected')));
+            } else {
+              throw("cannot access internet");
+            }
+          } catch (e) {
+            print(e);
+          }
+        });
+
+      } else {
+        Scaffold
+            .of(context)
+            .showSnackBar(SnackBar(content: Text('Connection failed')));
+        throw("cannot connect to this network");
+      }
+
+      _passwordCtrl.text = '';
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  handleDisconnect(network) async {
+    WiFiForIoTPlugin.disconnect();
   }
 
   @override

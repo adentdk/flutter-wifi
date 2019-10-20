@@ -38,7 +38,7 @@ class _SignInState extends State<SignIn> {
   }
 
   handleNavigate() {
-    Navigator.pushNamed(context, '/');
+    Navigator.pushReplacementNamed(context, "/");
   }
   
   Future<FirebaseUser> _handleSignIn() async {

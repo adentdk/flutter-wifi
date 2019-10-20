@@ -19,13 +19,13 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   Connectivity _connectivity = new Connectivity();
   bool isWifiEnable = false;
+  var listener;
 
   void initState() {
     super.initState();
     isWifiEnabled();
-    _connectivity.onConnectivityChanged.listen((ConnectivityResult result) {
-      print(result);
-      if (result == ConnectivityResult.wifi) {
+    listener = _connectivity.onConnectivityChanged.listen((ConnectivityResult result) async {
+      if (result == ConnectivityResult.wifi && await WiFiForIoTPlugin.isEnabled() == true) {
         setState(() {
           isWifiEnable = true;
         });
@@ -39,6 +39,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void dispose() {
     super.dispose();
+    listener.cancel();
   }
 
   void handleChangeWifi(bool value) async {
